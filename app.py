@@ -6,6 +6,7 @@ from components.school_details import render_school_details
 from components.school_compare import render_school_compare
 from components.school_filters import filter_schools, render_filters
 from components.school_map import render_school_map
+from components.school_advisor import render_school_advisor
 from utils.data_sources import get_cms_schools, get_school_boundaries, get_transportation_zones
 from utils.distance import add_distances
 from utils.geocoding import geocode_address, is_likely_cms_area
@@ -61,7 +62,7 @@ def render_find_schools() -> None:
         render_school_details(visible.loc[visible.school_name.eq(selected_name)].iloc[0])
 
 def main() -> None:
-    find_tab, compare_tab = st.tabs(["Find Schools", "Compare Schools"])
+    find_tab, compare_tab, advisor_tab = st.tabs(["Find Schools", "Compare Schools", "AI School Advisor"])
     with find_tab:
         render_find_schools()
     with compare_tab:
@@ -71,6 +72,14 @@ def main() -> None:
             else: render_school_compare(schools_result["data"])
         except Exception:
             logging.exception("Comparison school retrieval failed")
+            st.error("School data is temporarily unavailable. Please try again later.")
+    with advisor_tab:
+        try:
+            schools_result = get_cms_schools()
+            if not schools_result["available"]: st.error(schools_result["message"])
+            else: render_school_advisor(schools_result["data"], st.session_state.get("home"))
+        except Exception:
+            logging.exception("Advisor school retrieval failed")
             st.error("School data is temporarily unavailable. Please try again later.")
 
 if __name__ == "__main__": main()

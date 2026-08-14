@@ -4,6 +4,8 @@ A focused MVP for exploring **Charlotte-Mecklenburg Schools (CMS)** near a home 
 
 The **Compare Schools** tab lets a family select 2–4 schools. It uses NC DPI School Report Card data for available academic measures and links out to Niche searches; it does not copy, store, or display Niche ratings or rankings.
 
+The **AI School Advisor** tab accepts natural-language questions about school level, type, magnet status, and proximity. It translates those questions into filters over the existing CMS service data; it does not send questions or addresses to a generative-AI service.
+
 ## Run
 
 ```powershell
