@@ -1,0 +1,11 @@
+[project]
+name = "charlotte-school-search"
+version = "0.1.0"
+description = "A Charlotte-Mecklenburg Schools discovery MVP"
+requires-python = ">=3.11"
+dependencies = ["folium>=0.17", "geopy>=2.4", "openpyxl>=3.1", "pandas>=2.2", "requests>=2.32", "streamlit>=1.39", "streamlit-folium>=0.23"]
+[dependency-groups]
+dev = ["pytest>=8.0"]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
