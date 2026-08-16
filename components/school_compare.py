@@ -1,11 +1,56 @@
 """School-selection and comparison presentation, independent from the map."""
-from urllib.parse import quote_plus
+import re
 import pandas as pd
 import streamlit as st
 from utils.data_sources import get_nc_dpi_school_insights
 
-def _niche_search_url(school_name:str)->str:
-    return f"https://www.niche.com/k12/search/best-schools/?q={quote_plus(school_name + ' Charlotte NC')}"
+NICHE_SCHOOL_NAME_OVERRIDES = {
+    "butler high school": "David W Butler High School",
+    "butler high": "David W Butler High School",
+    "butler": "David W Butler High School",
+}
+
+def _niche_school_name(school_name:str,school_level:str|None)->str:
+    name=str(school_name).strip()
+    lower=name.lower()
+    if lower in NICHE_SCHOOL_NAME_OVERRIDES:
+        return NICHE_SCHOOL_NAME_OVERRIDES[lower]
+    if any(token in lower for token in ("school","academy","institute")):
+        return name
+    if lower.endswith(("elementary","middle","high")):
+        return f"{name} School"
+    level=str(school_level or "").lower()
+    if "middle" in level:
+        return f"{name} Middle School"
+    if "high" in level:
+        return f"{name} High School"
+    if "elementary" in level or "k-8" in level:
+        return f"{name} Elementary School"
+    return f"{name} School"
+
+def _niche_slug(value:str)->str:
+    normalized=str(value).lower().replace("&"," and ")
+    return re.sub(r"[^a-z0-9]+","-",normalized).strip("-")
+
+def _niche_city(school:pd.Series)->str:
+    city=str(school.get("city") or "").strip()
+    if city and city.lower() not in {"mecklenburg county", "county"}:
+        return city
+    address=str(school.get("address") or "")
+    match=re.search(
+        r"\b(CHARLOTTE|CORNELIUS|DAVIDSON|HUNTERSVILLE|MATTHEWS|MINT HILL|PINEVILLE)\s+NC\b",
+        address,
+        flags=re.IGNORECASE,
+    )
+    if match:
+        return match.group(1).title()
+    return "Charlotte"
+
+def _niche_school_url(school:pd.Series)->str:
+    name=_niche_school_name(school["school_name"],school.get("school_level"))
+    city=_niche_city(school)
+    state=str(school.get("state") or "NC").strip() or "NC"
+    return f"https://www.niche.com/k12/{_niche_slug(f'{name} {city} {state}')}/"
 
 def render_school_compare(schools:pd.DataFrame)->None:
     st.subheader("Compare Schools")
@@ -30,4 +75,6 @@ def render_school_compare(schools:pd.DataFrame)->None:
     st.dataframe(pd.DataFrame(rows,columns=["Metric"]+selected),hide_index=True,use_container_width=True)
     st.caption("NC DPI performance grades are official state accountability grades—not a recommendation or rating.")
     links=st.columns(len(selected))
-    for column,name in zip(links,selected):column.link_button(f"View {name} on Niche",_niche_search_url(name),use_container_width=True)
+    for column,name in zip(links,selected):
+        school=chosen.loc[chosen.school_name.eq(name)].iloc[0]
+        column.link_button(f"View {name} on Niche",_niche_school_url(school),use_container_width=True)
